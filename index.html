@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Structures — Fall 2026 Project Showcase</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">CSCI-UA 102 · Data Structures</div>
+    <h1>Fall 2026 Project Showcase</h1>
+  </header>
+
+  <div class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Team</th>
+            <th>Members</th>
+            <th>Description</th>
+            <th>Link</th>
+            <th>Score</th>
+            <th>Votes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+        <tfoot>
+          <tr class="add-row">
+            <td></td>
+            <td><input id="a-team"></td>
+            <td>
+              <div class="member-picker" id="a-members-wrap">
+                <div class="chips" id="a-members-chips"></div>
+                <input id="a-members-search">
+              </div>
+            </td>
+            <td><input id="a-desc"></td>
+            <td><input id="a-link"></td>
+            <td colspan="2"></td>
+            <td><button class="add-btn" id="a-submit">+ Add</button></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="add-msg" id="a-msg"></div>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>

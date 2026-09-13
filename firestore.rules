@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /submissions/{teamId} {
+      allow read: if true;
+      allow create, update: if
+        request.resource.data.keys().hasAll(['team', 'members', 'desc', 'link']) &&
+        request.resource.data.team is string &&
+        request.resource.data.team.size() > 0 && request.resource.data.team.size() < 120 &&
+        request.resource.data.desc is string && request.resource.data.desc.size() < 500 &&
+        request.resource.data.link is string && request.resource.data.link.size() < 500 &&
+        request.resource.data.members is list &&
+        request.resource.data.members.size() > 0 && request.resource.data.members.size() <= 6;
+      allow delete: if false;
+    }
+
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create, update: if
+        request.resource.data.keys().hasAll(['voter', 'team', 'score']) &&
+        request.resource.data.voter is string && request.resource.data.voter.size() > 0 &&
+        request.resource.data.team is string &&
+        request.resource.data.score is number &&
+        request.resource.data.score >= 1 && request.resource.data.score <= 5;
+      allow delete: if false;
+    }
+  }
+}
