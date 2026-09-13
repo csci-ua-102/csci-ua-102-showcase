@@ -5,24 +5,40 @@ service cloud.firestore {
     match /submissions/{teamId} {
       allow read: if true;
       allow create, update: if
-        request.resource.data.keys().hasAll(['team', 'members', 'desc', 'link']) &&
+        request.resource.data.keys().hasAll(['team', 'members', 'memberNetids', 'desc', 'link']) &&
         request.resource.data.team is string &&
         request.resource.data.team.size() > 0 && request.resource.data.team.size() < 120 &&
         request.resource.data.desc is string && request.resource.data.desc.size() < 500 &&
         request.resource.data.link is string && request.resource.data.link.size() < 500 &&
         request.resource.data.members is list &&
-        request.resource.data.members.size() > 0 && request.resource.data.members.size() <= 6;
+        request.resource.data.members.size() > 0 && request.resource.data.members.size() <= 6 &&
+        request.resource.data.memberNetids is list &&
+        request.resource.data.memberNetids.size() == request.resource.data.members.size();
       allow delete: if false;
     }
 
     match /votes/{voteId} {
       allow read: if true;
-      allow create, update: if
+
+      // A vote can only ever be CREATED, never updated — this makes "has this
+      // NetID already voted for this team" a structural guarantee (the doc ID
+      // is voter_team) rather than something the app merely checks.
+      allow create: if
         request.resource.data.keys().hasAll(['voter', 'team', 'score']) &&
         request.resource.data.voter is string && request.resource.data.voter.size() > 0 &&
         request.resource.data.team is string &&
         request.resource.data.score is number &&
-        request.resource.data.score >= 1 && request.resource.data.score <= 5;
+        request.resource.data.score >= 1 && request.resource.data.score <= 5 &&
+        voteId == (request.resource.data.voter + '_' + request.resource.data.team) &&
+        // Reject the write outright if the voter's NetID is listed as a
+        // member of the team they're voting for — self-votes never make it
+        // into the database at all, they're not just filtered out later.
+        !(
+          exists(/databases/$(database)/documents/submissions/$(request.resource.data.team)) &&
+          get(/databases/$(database)/documents/submissions/$(request.resource.data.team)).data.get('memberNetids', []).hasAny([request.resource.data.voter])
+        );
+
+      allow update: if false;
       allow delete: if false;
     }
   }

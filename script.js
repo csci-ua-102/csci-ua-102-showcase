@@ -12,6 +12,7 @@ const votesCol = collection(db, 'votes');
 
 const $ = id => document.getElementById(id);
 function slugify(s){ return (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'x'; }
+function netidKey(s){ return (s||'').trim().toLowerCase(); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function isUrl(s){ try{ new URL(s); return true; }catch(e){ return false; } }
 
@@ -220,6 +221,7 @@ onSnapshot(votesCol, (snap)=>{
 
 let expandedTeam = null;
 let starPick = {};
+let byTeamCache = {};
 
 function render(){
   const tbody = $('rows');
@@ -231,6 +233,7 @@ function render(){
 
   if(submissionsCache.length === 0){
     tbody.innerHTML = '';
+    byTeamCache = {};
     return;
   }
 
@@ -241,9 +244,10 @@ function render(){
   votesCache.forEach(v=>{
     const t = byTeam[v.team];
     if(!t) return;
-    const netids = t.members.map(m => (m.netid||'').toLowerCase());
-    if(!netids.includes((v.voter||'').toLowerCase())) t.scores.push(v.score);
+    const netids = t.members.map(m => netidKey(m.netid));
+    if(!netids.includes(netidKey(v.voter))) t.scores.push(v.score);
   });
+  byTeamCache = byTeam;
 
   const ranked = Object.values(byTeam).map(t=>({
     ...t,
@@ -336,10 +340,18 @@ function attachRowHandlers(){
         status.textContent = 'Enter your NetID and pick a score.';
         return;
       }
+
+      const team = byTeamCache[slug];
+      const voterKey = netidKey(netid);
+      if(team && team.members.some(m => netidKey(m.netid) === voterKey)){
+        status.textContent = "You're listed on this team — you can't vote for it.";
+        return;
+      }
+
       try{
-        const voteId = slugify(netid) + '_' + slug;
+        const voteId = voterKey + '_' + slug;
         await setDoc(doc(votesCol, voteId), {
-          voter: netid,
+          voter: voterKey,
           team: slug,
           score,
           timestamp: serverTimestamp()
@@ -348,7 +360,11 @@ function attachRowHandlers(){
         starPick[slug] = 0;
         // render() fires automatically via the votes listener
       }catch(e){
-        status.textContent = 'Could not save — try again.';
+        if(e.code === 'permission-denied'){
+          status.textContent = "That NetID has already voted for this team, or isn't eligible to.";
+        } else {
+          status.textContent = 'Could not save — try again.';
+        }
         console.error(e);
       }
     });
@@ -379,6 +395,7 @@ $('a-submit').addEventListener('click', async ()=>{
     await setDoc(doc(submissionsCol, slug), {
       team, link, desc,
       members: selectedMembers,
+      memberNetids: selectedMembers.map(m => netidKey(m.netid)),
       timestamp: serverTimestamp()
     });
     $('a-team').value=''; $('a-link').value=''; $('a-desc').value='';

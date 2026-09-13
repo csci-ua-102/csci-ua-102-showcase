@@ -82,8 +82,18 @@ project yet. If your repo/site will be fully public, consider either:
 
 - The leaderboard updates live for everyone viewing the page — Firestore
   pushes changes instantly, no manual refresh needed.
-- Self-votes (a team member voting for their own team) are excluded from the
-  average automatically, based on the members listed on that submission.
-- There's no real authentication — NetID entry is self-reported everywhere
-  (adding a team, voting). Fine for an informal, low-stakes class tool; not a
-  substitute for your actual grading process.
+- **Self-votes are rejected server-side.** If a NetID listed as a team member
+  tries to vote for that team, Firestore's security rules refuse the write —
+  it's not just filtered out of the average afterward, it can't be recorded
+  at all, even by someone bypassing the UI entirely.
+- **One vote per NetID per team, permanently.** Votes can only be created,
+  never updated, so a NetID can't vote twice for the same team even by
+  resubmitting the form.
+- **Residual risk (by design, not a bug):** there's no real login, so NetID
+  entry is self-reported everywhere — someone could type in a NetID that
+  isn't theirs. The rules above stop the *structural* flaws (self-voting,
+  double-voting) but can't verify *identity* without adding real
+  authentication. If you want that level of rigor, the next step would be
+  Firebase Authentication with Google Sign-In restricted to `@nyu.edu`
+  addresses — a bigger lift, happy to build it if you want it before relying
+  on this for anything grade-adjacent.
