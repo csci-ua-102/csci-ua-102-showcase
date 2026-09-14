@@ -20,36 +20,34 @@
       <table>
         <thead>
           <tr>
-            <th></th>
             <th>Team</th>
-            <th>Members</th>
             <th>Description</th>
             <th>Link</th>
-            <th>Score</th>
-            <th>Votes</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
-        <tfoot>
-          <tr class="add-row">
-            <td></td>
-            <td><input id="a-team"></td>
-            <td>
-              <div class="member-picker" id="a-members-wrap">
-                <div class="chips" id="a-members-chips"></div>
-                <input id="a-members-search">
-              </div>
-            </td>
-            <td><input id="a-desc"></td>
-            <td><input id="a-link"></td>
-            <td colspan="2"></td>
-            <td><button class="add-btn" id="a-submit">+ Add</button></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
-    <div class="add-msg" id="a-msg"></div>
+
+    <div class="add-section">
+      <h2>Add your team</h2>
+      <label>Team name</label>
+      <input id="a-team">
+
+      <label>Members</label>
+      <div id="a-members-rows"></div>
+      <button type="button" class="mini" id="a-add-member">+ Add member</button>
+
+      <label>Description</label>
+      <input id="a-desc">
+
+      <label>Link</label>
+      <input id="a-link">
+
+      <button class="add-btn" id="a-submit">Submit</button>
+      <div class="add-msg" id="a-msg"></div>
+      <div class="add-note">Submissions can't be edited afterward — double check before submitting. Need a correction? Ask your TA.</div>
+    </div>
   </div>
 </div>
 

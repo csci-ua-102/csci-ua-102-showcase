@@ -1,18 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp
+  getFirestore, collection, doc, setDoc, writeBatch, onSnapshot, serverTimestamp, orderBy, query
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { firebaseConfig } from './firebase-config.js';
-import { ROSTER } from './roster.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const submissionsCol = collection(db, 'submissions');
-const votesCol = collection(db, 'votes');
+const rostersCol = collection(db, 'rosters');
 
 const $ = id => document.getElementById(id);
 function slugify(s){ return (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'x'; }
-function netidKey(s){ return (s||'').trim().toLowerCase(); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function isUrl(s){ try{ new URL(s); return true; }catch(e){ return false; } }
 
@@ -140,246 +138,66 @@ function isUrl(s){ try{ new URL(s); return true; }catch(e){ return false; } }
   requestAnimationFrame(draw);
 })();
 
-/* ---------------- roster search / member picker ---------------- */
-let selectedMembers = [];
-
-function renderChips(){
-  $('a-members-chips').innerHTML = selectedMembers.map(m => `
-    <span class="chip">${escapeHtml(m.name)} (${escapeHtml(m.netid)})
-      <button type="button" data-remove="${m.netid}">×</button>
-    </span>
-  `).join('');
-  $('a-members-chips').querySelectorAll('[data-remove]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      selectedMembers = selectedMembers.filter(m => m.netid !== btn.dataset.remove);
-      renderChips();
-    });
+/* ---------------- dynamic member rows (name + NetID pairs, arbitrary count) ---------------- */
+function addMemberRow(name = '', netid = ''){
+  const wrap = document.createElement('div');
+  wrap.className = 'member-row';
+  wrap.innerHTML = `
+    <input placeholder="" class="m-name" value="${escapeHtml(name)}">
+    <input placeholder="" class="m-netid" value="${escapeHtml(netid)}">
+    <button type="button" title="Remove">×</button>
+  `;
+  wrap.querySelector('button').addEventListener('click', ()=>{
+    // never let it go below one row
+    if($('a-members-rows').children.length > 1) wrap.remove();
   });
+  $('a-members-rows').appendChild(wrap);
+}
+addMemberRow();
+$('a-add-member').addEventListener('click', ()=> addMemberRow());
+
+function collectMembers(){
+  return Array.from($('a-members-rows').querySelectorAll('.member-row')).map(row => ({
+    name: row.querySelector('.m-name').value.trim(),
+    netid: row.querySelector('.m-netid').value.trim()
+  })).filter(m => m.name && m.netid);
 }
 
-const rosterDropdown = document.createElement('div');
-rosterDropdown.className = 'roster-dropdown';
-document.body.appendChild(rosterDropdown);
-
-function positionDropdown(){
-  const rect = $('a-members-search').getBoundingClientRect();
-  rosterDropdown.style.left = rect.left + 'px';
-  rosterDropdown.style.top = (rect.bottom + 4) + 'px';
-  rosterDropdown.style.width = Math.max(220, rect.width) + 'px';
-}
-
-function showRosterMatches(query){
-  const q = query.trim().toLowerCase();
-  const taken = new Set(selectedMembers.map(m=>m.netid));
-  const matches = ROSTER.filter(r =>
-    !taken.has(r.netid) &&
-    (q === '' ? false : (r.name.toLowerCase().includes(q) || r.netid.toLowerCase().includes(q)))
-  ).slice(0, 8);
-
-  if(q === ''){ rosterDropdown.classList.remove('show'); return; }
-
-  rosterDropdown.innerHTML = matches.length
-    ? matches.map(r => `<div class="opt" data-netid="${r.netid}"><span>${escapeHtml(r.name)}</span><span class="rid">${escapeHtml(r.netid)}</span></div>`).join('')
-    : '<div class="none">No matching student</div>';
-
-  rosterDropdown.querySelectorAll('.opt').forEach(opt=>{
-    opt.addEventListener('click', ()=>{
-      const r = ROSTER.find(x => x.netid === opt.dataset.netid);
-      if(r){ selectedMembers.push(r); renderChips(); }
-      $('a-members-search').value = '';
-      rosterDropdown.classList.remove('show');
-      $('a-members-search').focus();
-    });
-  });
-  positionDropdown();
-  rosterDropdown.classList.add('show');
-}
-
-$('a-members-search').addEventListener('input', (e)=> showRosterMatches(e.target.value));
-$('a-members-search').addEventListener('focus', (e)=> { if(e.target.value) showRosterMatches(e.target.value); });
-document.addEventListener('click', (e)=>{
-  if(!rosterDropdown.contains(e.target) && e.target.id !== 'a-members-search'){
-    rosterDropdown.classList.remove('show');
-  }
-});
-window.addEventListener('resize', positionDropdown);
-window.addEventListener('scroll', positionDropdown, true);
-
-/* ---------------- live data (Firestore real-time listeners) ---------------- */
+/* ---------------- live data (Firestore real-time listener, public collection only) ---------------- */
 let submissionsCache = [];
-let votesCache = [];
 
-onSnapshot(submissionsCol, (snap)=>{
+onSnapshot(query(submissionsCol, orderBy('timestamp', 'desc')), (snap)=>{
   submissionsCache = snap.docs.map(d => ({ slug: d.id, ...d.data() }));
   render();
 }, (err)=>{ console.error('submissions listener error', err); });
 
-onSnapshot(votesCol, (snap)=>{
-  votesCache = snap.docs.map(d => d.data());
-  render();
-}, (err)=>{ console.error('votes listener error', err); });
-
-let expandedTeam = null;
-let starPick = {};
-let byTeamCache = {};
-
 function render(){
   const tbody = $('rows');
 
-  const oldPos = {};
-  tbody.querySelectorAll('tr[data-team]').forEach(tr=>{
-    oldPos[tr.dataset.team] = tr.getBoundingClientRect();
-  });
-
   if(submissionsCache.length === 0){
     tbody.innerHTML = '';
-    byTeamCache = {};
     return;
   }
 
-  const byTeam = {};
-  submissionsCache.forEach(s=>{
-    byTeam[s.slug] = { ...s, members: Array.isArray(s.members) ? s.members : [], scores: [] };
-  });
-  votesCache.forEach(v=>{
-    const t = byTeam[v.team];
-    if(!t) return;
-    const netids = t.members.map(m => netidKey(m.netid));
-    if(!netids.includes(netidKey(v.voter))) t.scores.push(v.score);
-  });
-  byTeamCache = byTeam;
-
-  const ranked = Object.values(byTeam).map(t=>({
-    ...t,
-    count: t.scores.length,
-    avg: t.scores.length ? t.scores.reduce((a,b)=>a+b,0)/t.scores.length : 0
-  })).sort((a,b)=> b.avg - a.avg || b.count - a.count);
-
-  tbody.innerHTML = ranked.map((t,i)=>{
-    const rows = [`
-      <tr data-team="${t.slug}" class="${i===0 && t.count>0 ? 'first':''}">
-        <td class="rank-cell">${i+1}</td>
-        <td><span class="teamname">${escapeHtml(t.team)}</span></td>
-        <td class="members-cell">
-          <span class="name-list">${t.members.map(m=>escapeHtml(m.name)).join(', ')}</span>
-          <span class="netid-list">${t.members.map(m=>escapeHtml(m.netid)).join(', ')}</span>
-        </td>
-        <td>${escapeHtml(t.desc)}</td>
-        <td><a href="${escapeHtml(t.link)}" target="_blank" rel="noopener">Open ↗</a></td>
-        <td class="score-cell">${t.count ? t.avg.toFixed(1) : '—'}</td>
-        <td class="votes-cell">${t.count}</td>
-        <td><button class="mini" data-toggle="${t.slug}">Vote</button></td>
-      </tr>
-    `];
-    if(expandedTeam === t.slug){
-      rows.push(`
-        <tr class="vote-row" data-vote-for="${t.slug}">
-          <td colspan="8">
-            <div class="vote-form">
-              <div class="field"><label>Your NetID</label><input id="vf-netid-${t.slug}"></div>
-              <div class="field"><label>Score</label>
-                <div class="stars-pick" data-stars="${t.slug}">
-                  ${[1,2,3,4,5].map(n=>`<button data-v="${n}" class="${(starPick[t.slug]||0)>=n?'sel':''}">${n}</button>`).join('')}
-                </div>
-              </div>
-              <button class="vote-submit" data-submit="${t.slug}">Submit vote</button>
-              <div class="vote-status" id="vf-status-${t.slug}"></div>
-            </div>
-          </td>
-        </tr>
-      `);
-    }
-    return rows.join('');
-  }).join('');
-
-  tbody.querySelectorAll('tr[data-team]').forEach(tr=>{
-    const slug = tr.dataset.team;
-    const old = oldPos[slug];
-    if(!old) return;
-    const now = tr.getBoundingClientRect();
-    const dy = old.top - now.top;
-    if(Math.abs(dy) > 1){
-      tr.style.transition = 'none';
-      tr.style.transform = `translateY(${dy}px)`;
-      requestAnimationFrame(()=>{
-        tr.style.transition = 'transform .45s ease';
-        tr.style.transform = 'translateY(0)';
-      });
-    }
-  });
-
-  attachRowHandlers();
+  tbody.innerHTML = submissionsCache.map(t => `
+    <tr>
+      <td><span class="teamname">${escapeHtml(t.team)}</span></td>
+      <td>${escapeHtml(t.desc)}</td>
+      <td><a href="${escapeHtml(t.link)}" target="_blank" rel="noopener">Open ↗</a></td>
+    </tr>
+  `).join('');
 }
 
-function attachRowHandlers(){
-  document.querySelectorAll('[data-toggle]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const slug = btn.dataset.toggle;
-      expandedTeam = (expandedTeam === slug) ? null : slug;
-      render();
-    });
-  });
-  document.querySelectorAll('[data-stars]').forEach(group=>{
-    const slug = group.dataset.stars;
-    group.querySelectorAll('button').forEach(b=>{
-      b.addEventListener('click', ()=>{
-        starPick[slug] = parseInt(b.dataset.v,10);
-        group.querySelectorAll('button').forEach(x=>{
-          x.classList.toggle('sel', parseInt(x.dataset.v,10) <= starPick[slug]);
-        });
-      });
-    });
-  });
-  document.querySelectorAll('[data-submit]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const slug = btn.dataset.submit;
-      const netid = $('vf-netid-'+slug).value.trim();
-      const score = starPick[slug] || 0;
-      const status = $('vf-status-'+slug);
-      if(!netid || !score){
-        status.textContent = 'Enter your NetID and pick a score.';
-        return;
-      }
-
-      const team = byTeamCache[slug];
-      const voterKey = netidKey(netid);
-      if(team && team.members.some(m => netidKey(m.netid) === voterKey)){
-        status.textContent = "You're listed on this team — you can't vote for it.";
-        return;
-      }
-
-      try{
-        const voteId = voterKey + '_' + slug;
-        await setDoc(doc(votesCol, voteId), {
-          voter: voterKey,
-          team: slug,
-          score,
-          timestamp: serverTimestamp()
-        });
-        expandedTeam = null;
-        starPick[slug] = 0;
-        // render() fires automatically via the votes listener
-      }catch(e){
-        if(e.code === 'permission-denied'){
-          status.textContent = "That NetID has already voted for this team, or isn't eligible to.";
-        } else {
-          status.textContent = 'Could not save — try again.';
-        }
-        console.error(e);
-      }
-    });
-  });
-}
-
-/* ---------------- add row ---------------- */
+/* ---------------- add team (writes to two collections: public + private) ---------------- */
 $('a-submit').addEventListener('click', async ()=>{
   const team = $('a-team').value.trim();
   const link = $('a-link').value.trim();
   const desc = $('a-desc').value.trim();
+  const members = collectMembers();
   const msg = $('a-msg');
 
-  if(!team || !link || selectedMembers.length === 0){
-    msg.textContent = 'Team name, at least one member, and a link are required.';
+  if(!team || !link || members.length === 0){
+    msg.textContent = 'Team name, at least one member (name + NetID), and a link are required.';
     msg.classList.add('show');
     return;
   }
@@ -390,19 +208,28 @@ $('a-submit').addEventListener('click', async ()=>{
   }
   msg.classList.remove('show');
 
+  const slug = slugify(team);
   try{
-    const slug = slugify(team);
-    await setDoc(doc(submissionsCol, slug), {
+    const batch = writeBatch(db);
+    batch.set(doc(submissionsCol, slug), {
       team, link, desc,
-      members: selectedMembers,
-      memberNetids: selectedMembers.map(m => netidKey(m.netid)),
       timestamp: serverTimestamp()
     });
+    batch.set(doc(rostersCol, slug), {
+      members,
+      timestamp: serverTimestamp()
+    });
+    await batch.commit();
+
     $('a-team').value=''; $('a-link').value=''; $('a-desc').value='';
-    selectedMembers = []; renderChips();
+    $('a-members-rows').innerHTML = ''; addMemberRow();
     // render() fires automatically via the submissions listener
   }catch(e){
-    msg.textContent = 'Could not save — try again.';
+    if(e.code === 'permission-denied'){
+      msg.textContent = 'A team with that name already exists and submissions can\'t be edited — pick a different team name, or ask your TA to fix the existing one.';
+    } else {
+      msg.textContent = 'Could not save — try again.';
+    }
     msg.classList.add('show');
     console.error(e);
   }
