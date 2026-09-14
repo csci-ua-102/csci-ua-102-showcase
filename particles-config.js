@@ -50,6 +50,10 @@ const particlesOptions = {
 };
 
 (async () => {
-  await loadFull(tsParticles);
-  await tsParticles.load({ id: "tsparticles-bg", options: particlesOptions });
+  try {
+    await loadFull(tsParticles);
+    await tsParticles.load({ id: "tsparticles-bg", options: particlesOptions });
+  } catch (err) {
+    console.error("tsParticles failed to initialize:", err);
+  }
 })();
