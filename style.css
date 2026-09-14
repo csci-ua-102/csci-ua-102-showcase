@@ -253,3 +253,75 @@ button.mini:hover{border-color:var(--pointer);color:var(--pointer);}
   transition:opacity .12s ease;
 }
 .tree-tooltip.show{opacity:1;}
+
+/* view toggle */
+.view-toggle{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+.view-btn{
+  border:1.5px solid var(--line-strong);
+  background:var(--panel);
+  color:var(--ink-soft);
+  padding:7px 16px;
+  border-radius:7px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  font-family:inherit;
+}
+.view-btn:hover{border-color:var(--pointer);color:var(--pointer);}
+.view-btn.active{background:var(--pointer);border-color:var(--pointer);color:#08130F;}
+
+/* linked list */
+.list-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0;
+  padding:30px 10px 40px;
+  justify-content:center;
+}
+.ll-node{
+  padding:12px 18px;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:600;
+  color:#07110D;
+  white-space:nowrap;
+  max-width:180px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.15) inset;
+  animation:ll-bob 5s ease-in-out infinite;
+  transition:box-shadow .2s ease;
+}
+.ll-node:hover{
+  animation-play-state:paused;
+  box-shadow:0 10px 26px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.55) inset;
+}
+@keyframes ll-bob{
+  0%,100%{ transform:translateY(0) rotate(0deg); }
+  50%{ transform:translateY(-6px) rotate(1deg); }
+}
+.ll-arrow{
+  font-size:20px;
+  color:var(--ink-soft);
+  margin:0 10px;
+  flex-shrink:0;
+}
+.ll-null{
+  border:1.5px dashed var(--line-strong);
+  color:var(--ink-soft);
+  padding:10px 16px;
+  border-radius:8px;
+  font-size:12px;
+  background:transparent;
+  flex-shrink:0;
+}
+@media (prefers-reduced-motion: reduce){
+  .ll-node{ animation:none; }
+}

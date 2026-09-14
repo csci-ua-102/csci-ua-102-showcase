@@ -6,7 +6,21 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<
 const wrap = document.getElementById('tree-wrap');
 const inner = document.getElementById('tree-inner');
 const svg = document.getElementById('tree-edges');
+const listWrap = document.getElementById('list-wrap');
 const empty = document.getElementById('empty');
+
+let currentView = 'tree';
+let latestItems = [];
+
+document.querySelectorAll('.view-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentView = btn.dataset.view;
+    document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    wrap.style.display = currentView === 'tree' ? '' : 'none';
+    listWrap.style.display = currentView === 'list' ? 'flex' : 'none';
+    renderCurrentView();
+  });
+});
 
 const COLORS = ['#49C9A6', '#FF8A5B', '#F5C84C', '#B491F0', '#5EC8F2'];
 const LEVEL_HEIGHT = 130;
@@ -53,16 +67,25 @@ function showTooltip(el, text){
 function hideTooltip(){ tooltip.classList.remove('show'); }
 
 onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
-  const items = snap.docs.map(d => d.data());
+  latestItems = snap.docs.map(d => d.data());
+  renderCurrentView();
+}, (err)=>{ console.error('submissions listener error', err); });
 
-  if(items.length === 0){
+function renderCurrentView(){
+  if(latestItems.length === 0){
     inner.querySelectorAll('.tree-node').forEach(n => n.remove());
     svg.innerHTML = '';
+    listWrap.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
 
+  if(currentView === 'tree') renderTree(latestItems);
+  else renderLinkedList(latestItems);
+}
+
+function renderTree(items){
   const { positions, width, height } = layoutTree(items.length);
 
   inner.style.width = width + 'px';
@@ -71,7 +94,6 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
   svg.setAttribute('height', height);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-  // edges — line from each node to its parent
   let edgesHtml = '';
   for(let i = 1; i < positions.length; i++){
     const parent = positions[Math.floor((i - 1) / 2)];
@@ -80,7 +102,6 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
   }
   svg.innerHTML = edgesHtml;
 
-  // nodes
   inner.querySelectorAll('.tree-node').forEach(n => n.remove());
   positions.forEach((pos, i) => {
     const item = items[i];
@@ -99,4 +120,29 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
 
     inner.appendChild(el);
   });
-}, (err)=>{ console.error('submissions listener error', err); });
+}
+
+function renderLinkedList(items){
+  listWrap.innerHTML = '';
+  items.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'll-node';
+    el.style.background = COLORS[i % COLORS.length];
+    el.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
+    el.style.animationDuration = (4 + Math.random() * 2.5).toFixed(2) + 's';
+    el.textContent = item.team;
+    el.addEventListener('mouseenter', () => showTooltip(el, item.desc || item.team));
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('click', () => window.open(item.link, '_blank', 'noopener'));
+    listWrap.appendChild(el);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'll-arrow';
+    arrow.textContent = '→';
+    listWrap.appendChild(arrow);
+  });
+  const nullNode = document.createElement('div');
+  nullNode.className = 'll-null';
+  nullNode.textContent = 'NULL';
+  listWrap.appendChild(nullNode);
+}

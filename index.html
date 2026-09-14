@@ -15,11 +15,19 @@
     <h1>Fall 2026 Project Showcase</h1>
   </header>
 
+  <div class="view-toggle">
+    <button class="view-btn active" data-view="tree">Tree</button>
+    <button class="view-btn" data-view="list">Linked List</button>
+  </div>
+
   <div id="tree-wrap" class="tree-wrap">
     <div id="tree-inner" class="tree-inner">
       <svg id="tree-edges"></svg>
     </div>
   </div>
+
+  <div id="list-wrap" class="list-wrap" style="display:none;"></div>
+
   <p id="empty" class="empty" style="display:none;">No projects posted yet — check back soon.</p>
 </div>
 
