@@ -44,13 +44,6 @@ body{
   background-position:top left;
   opacity:0.5;
 }
-#side-explosion{
-  right:0; bottom:0;
-  width:min(1280px, 90vw);
-  height:100vh;
-  background-size:cover;
-  background-position:right center;
-}
 .wrap{
   position:relative;
   z-index:1;
