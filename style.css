@@ -184,3 +184,72 @@ button.mini:hover{border-color:var(--pointer);color:var(--pointer);}
 @media (prefers-reduced-motion: reduce){
   canvas#bg{background:radial-gradient(ellipse at 30% 15%, #131a2c 0%, #0A0D18 55%, #07090F 100%);}
 }
+
+/* project tree */
+.tree-wrap{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding:20px 0 40px;
+}
+.tree-inner{
+  position:relative;
+  margin:0 auto;
+}
+#tree-edges{
+  position:absolute;
+  top:0; left:0;
+  pointer-events:none;
+}
+#tree-edges line{
+  stroke:rgba(255,255,255,0.16);
+  stroke-width:1.5;
+}
+.tree-node{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:150px;
+  padding:10px 14px;
+  border-radius:22px;
+  text-align:center;
+  font-size:13px;
+  font-weight:600;
+  color:#07110D;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer;
+  box-shadow:0 6px 22px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset;
+  animation:tree-bob 5s ease-in-out infinite;
+  transition:box-shadow .2s ease;
+}
+.tree-node:hover{
+  animation-play-state:paused;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.55) inset;
+  z-index:5;
+}
+@keyframes tree-bob{
+  0%,100%{ margin-top:0; rotate:0deg; }
+  50%{ margin-top:-7px; rotate:1.2deg; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tree-node{ animation:none; }
+}
+
+.tree-tooltip{
+  position:fixed;
+  max-width:240px;
+  background:#161B2A;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  padding:10px 13px;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.5;
+  box-shadow:0 12px 30px rgba(0,0,0,0.45);
+  pointer-events:none;
+  z-index:50;
+  opacity:0;
+  transition:opacity .12s ease;
+}
+.tree-tooltip.show{opacity:1;}
