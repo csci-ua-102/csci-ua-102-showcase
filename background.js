@@ -4,113 +4,82 @@
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduced) return;
   const ctx = canvas.getContext('2d');
-  let W,H,stars,clusters,splatters,t=0;
+  let W, H, particles;
+  const mouse = { x: -9999, y: -9999 };
+
+  // Matches the reference site's actual tsParticles config:
+  // particle color #e68e2e, link color #f5d393, link distance 150,
+  // speed 1, size 1-5, opacity 0.5, hover = repulse.
+  const PARTICLE_COLOR = '230,142,46';
+  const LINK_COLOR = '245,211,147';
+  const LINK_DIST = 150;
+  const REPULSE_DIST = 100;
 
   function resize(){
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    initScene();
+    initParticles();
   }
   window.addEventListener('resize', resize);
+  window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  window.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
 
-  function initScene(){
-    // sparse distant stars — background texture, not the main event
-    const starCount = Math.floor((W*H)/16000);
-    stars = Array.from({length:starCount}, ()=>({
-      x: Math.random()*W, y: Math.random()*H,
-      r: Math.random()*1.1 + 0.3,
-      phase: Math.random()*Math.PI*2,
-      speed: 0.5 + Math.random()*1.2
+  function initParticles(){
+    // density-based count, similar in spirit to tsParticles' density.width option
+    const count = Math.min(140, Math.floor((W * H) / 9000));
+    particles = Array.from({length: count}, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 1,
+      vy: (Math.random() - 0.5) * 1,
+      r: 1 + Math.random() * 4
     }));
-
-    // static red ink-splatter blobs, corner-anchored like the reference
-    splatters = [
-      { x: W*0.02, y: H*0.05, r: Math.min(W,H)*0.22, a: 0.16 },
-      { x: W*0.85, y: H*0.55, r: Math.min(W,H)*0.30, a: 0.10 },
-    ];
-
-    // bounded clusters of freely-drifting particles — this is how real
-    // tsParticles "links" mode works: each frame, any two particles closer
-    // than LINK_DIST get a line drawn between them, opacity fading with
-    // distance. Nothing is fixed — connections form and break continuously
-    // as particles move, which is what actually reads as "alive."
-    const boxes = [
-      { cx: W*0.28, cy: H*0.30, w: Math.min(W,H)*0.34, h: Math.min(W,H)*0.30 },
-      { cx: W*0.82, cy: H*0.38, w: Math.min(W,H)*0.30, h: Math.min(W,H)*0.34 },
-    ];
-    clusters = boxes.map(box => {
-      const count = 18;
-      const nodes = Array.from({length: count}, () => ({
-        x: box.cx + (Math.random()-0.5) * box.w,
-        y: box.cy + (Math.random()-0.5) * box.h,
-        vx: (Math.random()-0.5) * 0.5,
-        vy: (Math.random()-0.5) * 0.5
-      }));
-      return { box, nodes };
-    });
   }
   resize();
 
-  const LINK_DIST = 130;
-
   function draw(){
-    t += 1;
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0, 0, W, H);
 
-    splatters.forEach(s => {
-      const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
-      grad.addColorStop(0, `rgba(200,40,30,${s.a})`);
-      grad.addColorStop(1, 'rgba(200,40,30,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
-    });
-
-    stars.forEach(s => {
-      const tw = 0.5 + 0.5*Math.sin(t*0.02*s.speed + s.phase);
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${(0.08+0.3*tw).toFixed(3)})`;
-      ctx.fill();
-    });
-
-    clusters.forEach(cluster => {
-      const { box, nodes } = cluster;
-      const left = box.cx - box.w/2, right = box.cx + box.w/2;
-      const top = box.cy - box.h/2, bottom = box.cy + box.h/2;
-
-      // move + bounce within the bounding box, keeping the cluster compact
-      nodes.forEach(n => {
-        n.x += n.vx; n.y += n.vy;
-        if(n.x < left || n.x > right) n.vx *= -1;
-        if(n.y < top || n.y > bottom) n.vy *= -1;
-        n.x = Math.max(left, Math.min(right, n.x));
-        n.y = Math.max(top, Math.min(bottom, n.y));
-      });
-
-      // recompute links every frame based on live distance — this is the
-      // part that makes it feel dynamic rather than a fixed diagram
-      ctx.lineWidth = 1;
-      for(let i = 0; i < nodes.length; i++){
-        for(let j = i+1; j < nodes.length; j++){
-          const a = nodes[i], b = nodes[j];
-          const d = Math.hypot(a.x-b.x, a.y-b.y);
-          if(d < LINK_DIST){
-            const alpha = 0.28 * (1 - d/LINK_DIST);
-            ctx.strokeStyle = `rgba(224,196,150,${alpha.toFixed(3)})`;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
+    particles.forEach(p => {
+      // repulse from cursor
+      const dx = p.x - mouse.x, dy = p.y - mouse.y;
+      const distToMouse = Math.hypot(dx, dy);
+      if(distToMouse < REPULSE_DIST){
+        const force = (REPULSE_DIST - distToMouse) / REPULSE_DIST;
+        p.x += (dx / distToMouse) * force * 3;
+        p.y += (dy / distToMouse) * force * 3;
       }
 
-      nodes.forEach(n => {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 2.2, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,250,240,0.85)';
-        ctx.fill();
-      });
+      p.x += p.vx;
+      p.y += p.vy;
+      if(p.x < 0 || p.x > W) p.vx *= -1;
+      if(p.y < 0 || p.y > H) p.vy *= -1;
+      p.x = Math.max(0, Math.min(W, p.x));
+      p.y = Math.max(0, Math.min(H, p.y));
+    });
+
+    // links recomputed every frame by live distance
+    ctx.lineWidth = 1;
+    for(let i = 0; i < particles.length; i++){
+      for(let j = i + 1; j < particles.length; j++){
+        const a = particles[i], b = particles[j];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if(d < LINK_DIST){
+          const alpha = 0.5 * (1 - d / LINK_DIST);
+          ctx.strokeStyle = `rgba(${LINK_COLOR},${alpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${PARTICLE_COLOR},0.5)`;
+      ctx.fill();
     });
 
     requestAnimationFrame(draw);

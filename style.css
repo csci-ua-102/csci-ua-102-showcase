@@ -1,11 +1,11 @@
 :root{
-  --bg:#0A0D18;
+  --bg:#131424;
   --ink:#EAEDF3;
   --ink-soft:#8A93A8;
   --line:rgba(255,255,255,0.10);
   --line-strong:rgba(255,255,255,0.18);
-  --pointer:#F1442E;
-  --pointer-dim:rgba(241,68,46,0.16);
+  --pointer:#F13024;
+  --pointer-dim:rgba(241,48,36,0.16);
   --highlight:#FF8A5B;
   --panel:rgba(19,23,38,0.72);
   --field:#141926;
@@ -28,7 +28,29 @@ canvas#bg{
   height:100vh;
   z-index:0;
   display:block;
-  background:radial-gradient(ellipse at 30% 15%, #131a2c 0%, #0A0D18 55%, #07090F 100%);
+  background:var(--bg);
+}
+.bg-blend-img{
+  position:fixed;
+  z-index:0;
+  pointer-events:none;
+  background-repeat:no-repeat;
+  mix-blend-mode:color-dodge;
+}
+#corner-splatter{
+  top:0; left:0;
+  width:min(400px, 45vw);
+  height:min(400px, 45vw);
+  background-size:contain;
+  background-position:top left;
+  opacity:0.5;
+}
+#side-explosion{
+  right:0; bottom:0;
+  width:min(1280px, 90vw);
+  height:100vh;
+  background-size:cover;
+  background-position:right center;
 }
 .wrap{
   position:relative;
@@ -94,7 +116,7 @@ header.top h1{
   overflow:hidden;
   text-overflow:ellipsis;
   cursor:pointer;
-  box-shadow:0 8px 22px rgba(241,68,46,0.35);
+  box-shadow:0 8px 22px rgba(241,48,36,0.35);
   animation:pill-bob 5s ease-in-out infinite;
   transition:box-shadow .2s ease, transform .2s ease;
 }
@@ -193,5 +215,5 @@ button.mini:hover{border-color:var(--pointer);color:var(--pointer);}
 .add-note{font-size:11.5px;color:var(--ink-soft);margin-top:14px;max-width:480px;}
 
 @media (prefers-reduced-motion: reduce){
-  canvas#bg{background:radial-gradient(ellipse at 30% 15%, #131a2c 0%, #0A0D18 55%, #07090F 100%);}
+  canvas#bg{background:var(--bg);}
 }
