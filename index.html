@@ -15,42 +15,11 @@
     <h1>Fall 2026 Project Showcase</h1>
   </header>
 
-  <div class="panel">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Team</th>
-            <th>Description</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
-
-    <div class="add-section">
-      <h2>Add your team</h2>
-      <label>Team name</label>
-      <input id="a-team">
-
-      <label>Members</label>
-      <div id="a-members-rows"></div>
-      <button type="button" class="mini" id="a-add-member">+ Add member</button>
-
-      <label>Description</label>
-      <input id="a-desc">
-
-      <label>Link</label>
-      <input id="a-link">
-
-      <button class="add-btn" id="a-submit">Submit</button>
-      <div class="add-msg" id="a-msg"></div>
-      <div class="add-note">Submissions can't be edited afterward — double check before submitting. Need a correction? Ask your TA.</div>
-    </div>
-  </div>
+  <div id="gallery" class="gallery"></div>
+  <p id="empty" class="empty" style="display:none;">No projects posted yet — check back soon.</p>
 </div>
 
-<script type="module" src="script.js"></script>
+<script src="background.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

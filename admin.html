@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add a submission — CSCI-UA 102 Showcase (admin)</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">CSCI-UA 102 · Data Structures</div>
+    <h1>Add a submission</h1>
+  </header>
+
+  <div class="panel">
+    <div class="add-section">
+      <h2>From a Form response</h2>
+      <label>Team name</label>
+      <input id="a-team">
+
+      <label>Members</label>
+      <div id="a-members-rows"></div>
+      <button type="button" class="mini" id="a-add-member">+ Add member</button>
+
+      <label>Description</label>
+      <input id="a-desc">
+
+      <label>Link</label>
+      <input id="a-link">
+
+      <button class="add-btn" id="a-submit">Submit</button>
+      <div class="add-msg" id="a-msg"></div>
+      <div class="add-note">This page isn't linked from the public site — bookmark it. Entries are immutable once added; double-check before submitting.</div>
+    </div>
+  </div>
+</div>
+
+<script src="background.js"></script>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

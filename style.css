@@ -75,30 +75,6 @@ header.top h1{
   box-shadow:0 20px 60px rgba(0,0,0,0.35);
 }
 
-.table-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px;}
-th{
-  text-align:left;
-  font-size:11.5px;
-  color:var(--ink-soft);
-  border-bottom:1.5px solid var(--line-strong);
-  padding:10px 12px;
-  font-weight:600;
-  white-space:nowrap;
-  background:rgba(10,13,24,0.55);
-  position:sticky;
-  top:0;
-}
-td{
-  padding:11px 12px;
-  border-bottom:1px solid var(--line);
-  vertical-align:top;
-  color:var(--ink);
-}
-tbody tr{transition:background .2s ease;}
-tbody tr:hover{background:rgba(255,255,255,0.03);}
-td a{color:var(--pointer);text-decoration:none;}
-td a:hover{text-decoration:underline;}
 .teamname{font-weight:600;color:var(--ink);}
 
 button.mini{
@@ -114,7 +90,54 @@ button.mini{
 }
 button.mini:hover{border-color:var(--pointer);color:var(--pointer);}
 
-.empty{color:var(--ink-soft);font-size:14px;padding:22px 16px;}
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:18px;
+}
+.card{
+  background:var(--panel);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow:0 14px 40px rgba(0,0,0,0.3);
+  transition:transform .2s ease, border-color .2s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--pointer);}
+.card h3{
+  font-family:'Newsreader', Georgia, serif;
+  font-weight:600;
+  font-size:19px;
+  margin:0;
+  color:var(--ink);
+}
+.card p{
+  margin:0;
+  color:var(--ink-soft);
+  font-size:13.5px;
+  line-height:1.55;
+  flex:1;
+}
+.card .open-link{
+  align-self:flex-start;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--pointer);
+  border:1.5px solid var(--pointer-dim);
+  background:var(--pointer-dim);
+  padding:7px 14px;
+  border-radius:7px;
+  text-decoration:none;
+  transition:background .15s ease, color .15s ease;
+}
+.card .open-link:hover{background:var(--pointer);color:#08130F;}
+
+.empty{color:var(--ink-soft);font-size:14px;padding:40px 16px;text-align:center;}
 
 /* add section */
 .add-section{padding:22px 24px 26px;border-top:1px solid var(--line);}
