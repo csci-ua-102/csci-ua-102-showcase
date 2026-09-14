@@ -4,8 +4,8 @@
   --ink-soft:#8A93A8;
   --line:rgba(255,255,255,0.10);
   --line-strong:rgba(255,255,255,0.18);
-  --pointer:#49C9A6;
-  --pointer-dim:rgba(73,201,166,0.14);
+  --pointer:#F1442E;
+  --pointer-dim:rgba(241,68,46,0.16);
   --highlight:#FF8A5B;
   --panel:rgba(19,23,38,0.72);
   --field:#141926;
@@ -84,7 +84,7 @@ header.top h1{
 }
 .pill{
   background:var(--pointer);
-  color:#08130F;
+  color:#FFF6F4;
   padding:14px 26px;
   border-radius:999px;
   font-size:14.5px;
@@ -94,7 +94,7 @@ header.top h1{
   overflow:hidden;
   text-overflow:ellipsis;
   cursor:pointer;
-  box-shadow:0 8px 22px rgba(0,0,0,0.35);
+  box-shadow:0 8px 22px rgba(241,68,46,0.35);
   animation:pill-bob 5s ease-in-out infinite;
   transition:box-shadow .2s ease, transform .2s ease;
 }
@@ -128,6 +128,12 @@ header.top h1{
   transition:opacity .12s ease;
 }
 .pill-tooltip.show{opacity:1;}
+.pill-arrow{
+  color:var(--ink-soft);
+  font-size:20px;
+  display:flex;
+  align-items:center;
+}
 
 .empty{color:var(--ink-soft);font-size:14px;padding:40px 16px;text-align:center;}
 
@@ -173,7 +179,7 @@ button.mini:hover{border-color:var(--pointer);color:var(--pointer);}
 .add-btn{
   margin-top:18px;
   background:var(--pointer);
-  color:#08130F;
+  color:#FFF6F4;
   border:none;
   padding:9px 20px;
   border-radius:6px;

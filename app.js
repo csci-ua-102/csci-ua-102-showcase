@@ -30,7 +30,7 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
   empty.style.display = 'none';
 
   pillWrap.innerHTML = '';
-  items.forEach(item => {
+  items.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = 'pill';
     el.textContent = item.team;
@@ -39,5 +39,12 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
     el.addEventListener('mouseleave', hideTooltip);
     el.addEventListener('click', () => window.open(item.link, '_blank', 'noopener'));
     pillWrap.appendChild(el);
+
+    if(i < items.length - 1){
+      const arrow = document.createElement('span');
+      arrow.className = 'pill-arrow';
+      arrow.textContent = '→';
+      pillWrap.appendChild(arrow);
+    }
   });
 }, (err)=>{ console.error('submissions listener error', err); });

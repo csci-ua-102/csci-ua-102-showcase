@@ -86,7 +86,7 @@
       const py = a.y + (b.y-a.y)*e.pt;
       ctx.beginPath();
       ctx.arc(px,py,1.8,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(255,180,120,0.55)';
+      ctx.fillStyle = 'rgba(241,68,46,0.6)';
       ctx.fill();
     });
     nodes.forEach(n=>{
