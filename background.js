@@ -4,7 +4,7 @@
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduced) return;
   const ctx = canvas.getContext('2d');
-  let W,H,stars,nodes,edges,comets=[],t=0;
+  let W,H,stars,clusters,splatters,t=0;
 
   function resize(){
     W = canvas.width = window.innerWidth;
@@ -14,108 +14,101 @@
   resize();
 
   function initScene(){
-    const starCount = Math.floor((W*H)/6000);
+    // sparse distant stars — background texture, not the main event
+    const starCount = Math.floor((W*H)/16000);
     stars = Array.from({length:starCount}, ()=>({
       x: Math.random()*W, y: Math.random()*H,
-      r: Math.random()*1.3 + 0.3,
+      r: Math.random()*1.1 + 0.3,
       phase: Math.random()*Math.PI*2,
-      speed: 0.6 + Math.random()*1.4
+      speed: 0.5 + Math.random()*1.2
     }));
 
-    const nodeCount = Math.max(12, Math.min(22, Math.floor((W*H)/85000)));
-    nodes = Array.from({length:nodeCount}, () => ({
-      x: Math.random()*W, y: Math.random()*H,
-      vx: (Math.random()-0.5)*0.12, vy: (Math.random()-0.5)*0.12
-    }));
-    edges = [];
-    for(let i=0;i<nodes.length;i++){
-      let best = -1, bd = Infinity;
-      for(let j=0;j<nodes.length;j++){
-        if(i===j) continue;
-        const d = Math.hypot(nodes[i].x-nodes[j].x, nodes[i].y-nodes[j].y);
-        if(d < bd){ bd = d; best = j; }
-      }
-      if(best>=0) edges.push({a:i,b:best,pt:Math.random()});
-    }
+    // static red ink-splatter blobs, corner-anchored like the reference
+    splatters = [
+      { x: W*0.02, y: H*0.05, r: Math.min(W,H)*0.22, a: 0.16 },
+      { x: W*0.85, y: H*0.55, r: Math.min(W,H)*0.30, a: 0.10 },
+    ];
+
+    // dense triangulated clusters (not an even spread) — 2-3 blobs of nodes,
+    // each node connected to its 2-3 nearest neighbors within the cluster
+    const clusterCenters = [
+      { x: W*0.28, y: H*0.28 },
+      { x: W*0.82, y: H*0.35 },
+    ];
+    clusters = clusterCenters.map(center => {
+      const count = 16;
+      const spread = Math.min(W,H) * 0.16;
+      const nodes = Array.from({length: count}, () => ({
+        x: center.x + (Math.random()-0.5) * spread * 2,
+        y: center.y + (Math.random()-0.5) * spread * 2,
+        vx: (Math.random()-0.5)*0.08,
+        vy: (Math.random()-0.5)*0.08
+      }));
+      const edges = [];
+      nodes.forEach((n, i) => {
+        const dists = nodes
+          .map((o, j) => ({ j, d: i===j ? Infinity : Math.hypot(n.x-o.x, n.y-o.y) }))
+          .sort((a,b) => a.d - b.d)
+          .slice(0, 3);
+        dists.forEach(d => edges.push({ a: i, b: d.j, pt: Math.random() }));
+      });
+      return { nodes, edges };
+    });
   }
   initScene();
-
-  function maybeSpawnComet(){
-    if(Math.random() < 0.006 && comets.length < 2){
-      const fromLeft = Math.random() < 0.5;
-      const y0 = Math.random()*H*0.6;
-      comets.push({
-        x: fromLeft ? -50 : W+50,
-        y: y0,
-        vx: (fromLeft ? 1 : -1) * (5 + Math.random()*3),
-        vy: 2 + Math.random()*1.5,
-        life: 1
-      });
-    }
-  }
 
   function draw(){
     t += 1;
     ctx.clearRect(0,0,W,H);
 
-    stars.forEach(s=>{
-      const tw = 0.55 + 0.45*Math.sin(t*0.02*s.speed + s.phase);
+    // red ink splatters, drawn first so everything else sits on top
+    splatters.forEach(s => {
+      const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+      grad.addColorStop(0, `rgba(200,40,30,${s.a})`);
+      grad.addColorStop(1, 'rgba(200,40,30,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    });
+
+    // distant stars
+    stars.forEach(s => {
+      const tw = 0.5 + 0.5*Math.sin(t*0.02*s.speed + s.phase);
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${(0.15+0.55*tw).toFixed(3)})`;
+      ctx.fillStyle = `rgba(255,255,255,${(0.08+0.3*tw).toFixed(3)})`;
       ctx.fill();
     });
 
-    nodes.forEach(n=>{
-      n.x += n.vx; n.y += n.vy;
-      if(n.x<0||n.x>W) n.vx*=-1;
-      if(n.y<0||n.y>H) n.vy*=-1;
-    });
-    ctx.lineWidth = 1;
-    edges.forEach(e=>{
-      const a = nodes[e.a], b = nodes[e.b];
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-      ctx.beginPath();
-      ctx.moveTo(a.x,a.y);
-      ctx.lineTo(b.x,b.y);
-      ctx.stroke();
+    // clustered triangulated meshes
+    clusters.forEach(cluster => {
+      cluster.nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy;
+      });
+      ctx.lineWidth = 1;
+      cluster.edges.forEach(e => {
+        const a = cluster.nodes[e.a], b = cluster.nodes[e.b];
+        ctx.strokeStyle = 'rgba(224,196,150,0.22)';
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
 
-      e.pt += 0.003;
-      if(e.pt > 1) e.pt = 0;
-      const px = a.x + (b.x-a.x)*e.pt;
-      const py = a.y + (b.y-a.y)*e.pt;
-      ctx.beginPath();
-      ctx.arc(px,py,1.8,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(241,68,46,0.6)';
-      ctx.fill();
+        e.pt += 0.0025;
+        if(e.pt > 1) e.pt = 0;
+        const px = a.x + (b.x-a.x)*e.pt;
+        const py = a.y + (b.y-a.y)*e.pt;
+        ctx.beginPath();
+        ctx.arc(px, py, 1.6, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(241,68,46,0.6)';
+        ctx.fill();
+      });
+      cluster.nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 2.2, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,250,240,0.85)';
+        ctx.fill();
+      });
     });
-    nodes.forEach(n=>{
-      ctx.beginPath();
-      ctx.arc(n.x,n.y,2,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.fill();
-    });
-
-    maybeSpawnComet();
-    comets.forEach(c=>{
-      const grad = ctx.createLinearGradient(c.x, c.y, c.x - c.vx*14, c.y - c.vy*14);
-      grad.addColorStop(0, `rgba(255,255,255,${0.85*c.life})`);
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(c.x, c.y);
-      ctx.lineTo(c.x - c.vx*14, c.y - c.vy*14);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, 1.6, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${c.life})`;
-      ctx.fill();
-
-      c.x += c.vx; c.y += c.vy;
-      if(c.x < -80 || c.x > W+80 || c.y > H+80) c.life = 0;
-    });
-    comets = comets.filter(c => c.life > 0);
 
     requestAnimationFrame(draw);
   }
