@@ -150,9 +150,9 @@ header.top h1{
 }
 
 .thumb-card{
-  width:150px;
-  height:150px;
-  border-radius:12px;
+  width:220px;
+  height:123.75px;
+  border-radius:10px;
   overflow:hidden;
   cursor:pointer;
   box-shadow:0 8px 22px rgba(0,0,0,0.35), 0 0 0 1px var(--line-strong);
