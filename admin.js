@@ -75,11 +75,7 @@ $('a-submit').addEventListener('click', async ()=>{
     $('a-members-rows').innerHTML = ''; addMemberRow();
   }catch(e){
     msg.style.color = 'var(--highlight)';
-    if(e.code === 'permission-denied'){
-      msg.textContent = 'A team with that name already exists and entries are immutable — edit directly in the Firebase console instead, or use a different team name.';
-    } else {
-      msg.textContent = 'Could not save — try again.';
-    }
+    msg.textContent = `Could not save — Firestore rejected the write (${e.code || 'unknown error'}). This usually means the security rules aren't the latest published version, or a field failed validation. Check the Rules tab in Firebase console.`;
     msg.classList.add('show');
     console.error(e);
   }
