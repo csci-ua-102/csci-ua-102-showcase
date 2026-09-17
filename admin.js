@@ -33,6 +33,7 @@ $('a-submit').addEventListener('click', async ()=>{
   const team = $('a-team').value.trim();
   const link = $('a-link').value.trim();
   const desc = $('a-desc').value.trim();
+  const thumbnail = $('a-thumb').value.trim();
   const members = collectMembers();
   const msg = $('a-msg');
 
@@ -46,15 +47,20 @@ $('a-submit').addEventListener('click', async ()=>{
     msg.classList.add('show');
     return;
   }
+  if(thumbnail && !isUrl(thumbnail)){
+    msg.textContent = 'Thumbnail needs to be a full URL, e.g. https://…, or leave it blank.';
+    msg.classList.add('show');
+    return;
+  }
   msg.classList.remove('show');
 
   const slug = slugify(team);
+  const submissionData = { team, link, desc, timestamp: serverTimestamp() };
+  if(thumbnail) submissionData.thumbnail = thumbnail;
+
   try{
     const batch = writeBatch(db);
-    batch.set(doc(submissionsCol, slug), {
-      team, link, desc,
-      timestamp: serverTimestamp()
-    });
+    batch.set(doc(submissionsCol, slug), submissionData);
     batch.set(doc(rostersCol, slug), {
       members,
       timestamp: serverTimestamp()
@@ -65,7 +71,7 @@ $('a-submit').addEventListener('click', async ()=>{
     msg.textContent = 'Added — check the public page to confirm.';
     msg.classList.add('show');
 
-    $('a-team').value=''; $('a-link').value=''; $('a-desc').value='';
+    $('a-team').value=''; $('a-link').value=''; $('a-desc').value=''; $('a-thumb').value='';
     $('a-members-rows').innerHTML = ''; addMemberRow();
   }catch(e){
     msg.style.color = 'var(--highlight)';

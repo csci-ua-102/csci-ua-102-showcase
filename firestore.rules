@@ -10,7 +10,9 @@ service cloud.firestore {
         request.resource.data.team is string &&
         request.resource.data.team.size() > 0 && request.resource.data.team.size() < 120 &&
         request.resource.data.desc is string && request.resource.data.desc.size() < 500 &&
-        request.resource.data.link is string && request.resource.data.link.size() < 500;
+        request.resource.data.link is string && request.resource.data.link.size() < 500 &&
+        (!('thumbnail' in request.resource.data) ||
+          (request.resource.data.thumbnail is string && request.resource.data.thumbnail.size() < 500));
       // Immutable once created — nobody (including the original team) can
       // edit or delete a submission from the client. This is what prevents
       // one team from tampering with another team's entry, without needing

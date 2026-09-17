@@ -32,10 +32,21 @@ onSnapshot(query(submissionsCol, orderBy('timestamp', 'asc')), (snap)=>{
   pillWrap.innerHTML = '';
   items.forEach((item, i) => {
     const el = document.createElement('div');
-    el.className = 'pill';
-    el.textContent = item.team;
     el.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
-    el.addEventListener('mouseenter', () => showTooltip(el, item.desc || item.team));
+
+    if(item.thumbnail){
+      el.className = 'thumb-card';
+      const img = document.createElement('img');
+      img.src = item.thumbnail;
+      img.alt = item.team;
+      el.appendChild(img);
+      el.addEventListener('mouseenter', () => showTooltip(el, `${item.team}${item.desc ? ' — ' + item.desc : ''}`));
+    } else {
+      el.className = 'pill';
+      el.textContent = item.team;
+      el.addEventListener('mouseenter', () => showTooltip(el, item.desc || item.team));
+    }
+
     el.addEventListener('mouseleave', hideTooltip);
     el.addEventListener('click', () => window.open(item.link, '_blank', 'noopener'));
     pillWrap.appendChild(el);
